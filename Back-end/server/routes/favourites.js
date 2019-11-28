@@ -1,18 +1,8 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
+const express = require('express');
+const router = express.Router();
 
 const MongoClient = require('mongodb').MongoClient
 const ObjectID = require('mongodb').ObjectID
-
-const openWeather = require("./src/openweather_functions").openWeather
-
-const app = express()
-app.use(cors())
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({ extended: true }));
-
-const port = process.env.PORT || 4000
 
 //Connection
 const url = 'mongodb://localhost:27017/'
@@ -25,23 +15,9 @@ mongoClient.connect(function (err, client){
   }
   db = client.db('WeatherApp')
   collection = db.collection("Cities")
-
-  app.listen(port, () => {
-      console.log('Server started on port ' + port)
-  })
 })
 
-app.get('/weather', async (req, res) => {
-  const result = await openWeather('q=' + req.query.city);
-  res.send(result);
-})
-
-app.get('/weather/coordinates', async (req, res) => {
-  const result = await openWeather('&lat=' + req.query.lat + '&lon=' + req.query.lon);
-  res.send(result);
-})
-
-app.get('/favourites', function (req, res) {
+router.get('/', function (req, res) {
   collection.find({}).toArray(function(err, result) {
     if(err){
         console.log(err);
@@ -53,7 +29,7 @@ app.get('/favourites', function (req, res) {
   })
 })
 
-app.post("/favourites", function (req, res) {
+router.post("/", function (req, res) {
   if(!req.body) return res.sendStatus(400)
   collection.updateOne({ city : req.body.city }, { $set: { city : req.body.city } }, {upsert: true}, (err, task) => {
      if (err) {
@@ -64,7 +40,7 @@ app.post("/favourites", function (req, res) {
   });
 })
 
-app.delete("/favourites", function (req, res) {
+router.delete("/", function (req, res) {
   if(!req.body) return res.sendStatus(400)
   collection.deleteOne({ city : req.body.city }, function(err, doc){
     if(err){
@@ -74,3 +50,5 @@ app.delete("/favourites", function (req, res) {
     return res.sendStatus(200);
   });
 })
+
+module.exports = router;
